@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello - Personal Greeting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .greeting {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-card p {
+            color: #555;
+            font-size: 1em;
+            line-height: 1.6;
+        }
+
+        .datetime {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .weather-icon {
+            font-size: 2em;
+        }
+
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👋 Hello!</h1>
+
+        <div class="input-group">
+            <label for="nameInput">Enter your name:</label>
+            <input type="text" id="nameInput" placeholder="Type your name here..." autocomplete="off">
+        </div>
+
+        <div class="greeting" id="greeting">
+            Hello! Please enter your name above.
+        </div>
+
+        <div class="info-card">
+            <h3>📅 Current Date & Time</h3>
+            <p class="datetime" id="datetime">Loading...</p>
+        </div>
+
+        <div class="info-card">
+            <h3>🌤️ Current Weather</h3>
+            <div class="weather-info" id="weather">
+                <p class="loading">Loading weather data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Greeting functionality
+        const nameInput = document.getElementById('nameInput');
+        const greeting = document.getElementById('greeting');
+
+        nameInput.addEventListener('input', (e) => {
+            const name = e.target.value.trim();
+            if (name) {
+                greeting.textContent = `Hello, ${name}! 🎉`;
+            } else {
+                greeting.textContent = 'Hello! Please enter your name above.';
+            }
+        });
+
+        // Date and Time functionality
+        function updateDateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            };
+            document.getElementById('datetime').textContent = now.toLocaleString('en-US', options);
+        }
+
+        // Update time every second
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Weather functionality
+        async function getWeather() {
+            const weatherDiv = document.getElementById('weather');
+
+            try {
+                // Try to get user's location
+                if ('geolocation' in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        async (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+
+                            try {
+                                // Using wttr.in API for weather data
+                                const response = await fetch(`https://wttr.in/${lat},${lon}?format=j1`);
+                                const data = await response.json();
+
+                                const current = data.current_condition[0];
+                                const location = data.nearest_area[0];
+
+                                weatherDiv.innerHTML = `
+                                    <div>
+                                        <p><strong>Location:</strong> ${location.areaName[0].value}, ${location.country[0].value}</p>
+                                        <p><strong>Temperature:</strong> ${current.temp_C}°C (${current.temp_F}°F)</p>
+                                        <p><strong>Condition:</strong> ${current.weatherDesc[0].value}</p>
+                                        <p><strong>Humidity:</strong> ${current.humidity}%</p>
+                                        <p><strong>Wind:</strong> ${current.windspeedKmph} km/h</p>
+                                    </div>
+                                `;
+                            } catch (error) {
+                                weatherDiv.innerHTML = '<p class="error">Failed to load weather data. Please try again later.</p>';
+                            }
+                        },
+                        (error) => {
+                            // If location permission denied, use default location
+                            fetchDefaultWeather();
+                        }
+                    );
+                } else {
+                    fetchDefaultWeather();
+                }
+            } catch (error) {
+                weatherDiv.innerHTML = '<p class="error">Weather service unavailable.</p>';
+            }
+        }
+
+        async function fetchDefaultWeather() {
+            const weatherDiv = document.getElementById('weather');
+            try {
+                // Default to a major city if geolocation is not available
+                const response = await fetch('https://wttr.in/London?format=j1');
+                const data = await response.json();
+
+                const current = data.current_condition[0];
+                const location = data.nearest_area[0];
+
+                weatherDiv.innerHTML = `
+                    <div>
+                        <p><strong>Location:</strong> ${location.areaName[0].value}, ${location.country[0].value} (default)</p>
+                        <p><strong>Temperature:</strong> ${current.temp_C}°C (${current.temp_F}°F)</p>
+                        <p><strong>Condition:</strong> ${current.weatherDesc[0].value}</p>
+                        <p><strong>Humidity:</strong> ${current.humidity}%</p>
+                        <p><strong>Wind:</strong> ${current.windspeedKmph} km/h</p>
+                    </div>
+                `;
+            } catch (error) {
+                weatherDiv.innerHTML = '<p class="error">Failed to load weather data.</p>';
+            }
+        }
+
+        // Load weather on page load
+        getWeather();
+    </script>
+</body>
+</html>
